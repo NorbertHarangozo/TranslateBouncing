@@ -1,23 +1,36 @@
 package hu.maszeksolutions.translatebouncing;
 
+import hu.maszeksolutions.translatebouncing.exceptions.InvalidConfiguration;
+import java.net.UnknownHostException;
+
 public class Main
 {
     public static void main(String[] args)
     {
-        JsonHandler handler = new JsonHandler();
-        Configuration configuration = handler.configure("configuration.json");
-
-        // Definitely not the greatest way to handle potential errors, but it's better than nothing.
-        // I should have started working on this project earlier, and then I wouldn't have to make code like this at 2AM...
         try
         {
+            Configuration configuration = new Configuration("configuration.json");
             Translator translator = new Translator(configuration.getApikey(), configuration.getServiceUrl());
             System.out.println(translator.translateBouncing(configuration.getText(), configuration.getLanguage(), configuration.getNumberOfTranslations(), translator.getSupportedLanguages()));
         }
-        catch (Exception ex)
+        catch (InvalidConfiguration invalidConfiguration)
         {
-            System.out.println(ex.getMessage());
+            System.out.println(invalidConfiguration.getMessage());
         }
+        catch (RuntimeException ex)
+        {
+            String reason;
 
+            if (ex.getCause() instanceof UnknownHostException)
+            {
+                reason = "The server doesn't seem to be reachable. Check your internet connection or the serviceUrl property.";
+            }
+            else
+            {
+                reason = ex.getMessage();
+            }
+
+            System.out.println(reason);
+        }
     }
 }
