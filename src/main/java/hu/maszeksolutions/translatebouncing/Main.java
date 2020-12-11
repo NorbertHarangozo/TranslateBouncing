@@ -11,7 +11,9 @@ public class Main
         {
             Configuration configuration = new Configuration("configuration.json");
             Translator translator = new Translator(configuration.getApikey(), configuration.getServiceUrl());
-            System.out.println(translator.translateBouncing(configuration.getText(), configuration.getLanguage(), configuration.getNumberOfTranslations(), translator.getSupportedLanguages()));
+
+            String translatedText = translator.translateBouncing(configuration.getText(), configuration.getLanguage(), configuration.getNumberOfTranslations());
+            System.out.println(translatedText);
         }
         catch (InvalidConfiguration invalidConfiguration)
         {

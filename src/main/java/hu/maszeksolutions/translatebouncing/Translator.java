@@ -6,7 +6,7 @@ import com.ibm.watson.language_translator.v3.LanguageTranslator;
 import com.ibm.watson.language_translator.v3.model.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
-
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -23,8 +23,11 @@ public class Translator
         this.service.setServiceUrl(serviceUrl);
     }
 
-    public String translate(String text, String source, String target)
+    private String translate(String text, String source, String target)
     {
+        if (source.equals(target))
+            return text;
+
         TranslateOptions translateOptions = new TranslateOptions.Builder()
                 .addText(text)
                 .source(source)
@@ -36,57 +39,57 @@ public class Translator
         return translations.get(0).getTranslation();
     }
 
-    public String translateBouncing(String text, String sourceLanguage, int numberOfTranslations, List<String> languages)
+    private String pickRandomLanguage(String sourceLanguage, List<String> languages)
     {
+        Random rnd = new Random();
+        String targetLanguage = sourceLanguage;
+
+        while (targetLanguage.equals(sourceLanguage))
+        {
+            targetLanguage = languages.get(rnd.nextInt(languages.size()));
+        }
+
+        return targetLanguage;
+    }
+
+    public String translateBouncing(String text, String sourceLanguage, int numberOfTranslations)
+    {
+        List<String> languages = getSupportedLanguages();
+
         if (!languages.contains(sourceLanguage))
         {
             System.out.println("The source language that you've entered is invalid. Pick one of the following:");
             return languages.toString();
         }
 
-        String result = text;
+        System.out.println(text);
 
+        String translatedText = text;
         String source = sourceLanguage;
-        String target = "";
-        Random rnd = new Random();
-
-        System.out.println(result);
+        String target = null;
 
         for (int i = 0; i < numberOfTranslations; i++)
         {
-            if (!source.equals("en"))
-            {
-                target = "en";
-                result = translate(result, source, target);
-                source = target;
-            }
+            // We have to translate the text English first, due to API limitations.
+            translatedText = translate(translatedText, source, "en");
 
-            do {
-                target = languages.get(rnd.nextInt(languages.size()));
-            } while (target.equals(source));
+            target = pickRandomLanguage(source, languages);
+            translatedText = translate(translatedText, source, target);
 
-            result = translate(result, source, target);
-            System.out.println("[" + target + "]" + result);
+            String message = MessageFormat.format("[{0}] {1}", target, translatedText);
+            System.out.println(message);
         }
 
+        // Translating to English one more time...
         source = target;
+        translatedText = translate(translatedText, source, "en");
+        // ...and then back to the original language.
+        translatedText = translate(translatedText, "en", sourceLanguage);
 
-        if (!target.equals("en"))
-        {
-            target = "en";
-            result = translate(result, source, target);
-            source = target;
-        }
-
-        if (!source.equals(sourceLanguage))
-        {
-            result = translate(result, source, sourceLanguage);
-        }
-
-        return result;
+        return translatedText;
     }
 
-    public List<String> getSupportedLanguages()
+    private List<String> getSupportedLanguages()
     {
         Languages languages = service.listLanguages().execute().getResult();
 
